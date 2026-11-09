@@ -8,7 +8,7 @@ const Company = sequelize.define("Company", {
     allowNull: false,
   },
   phone: {
-    type: DataTypes.BIGINT, // Use BIGINT for phone numbers to avoid integer overflow
+    type: DataTypes.STRING(30),
     allowNull: false,
   },
   address: {

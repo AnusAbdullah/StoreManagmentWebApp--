@@ -2,6 +2,10 @@ import { Sequelize, DataTypes } from "sequelize";
 
 import sequelize from "../database/db.js";
 const AccReceivable = sequelize.define("AccReceivable", {
+  customerId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
   cname: {
     type: DataTypes.STRING,
     allowNull: false,

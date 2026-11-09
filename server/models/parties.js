@@ -7,8 +7,8 @@ const Party = sequelize.define("Party", {
     allowNull: false,
   },
   phone: {
-    type: DataTypes.INTEGER,
-    allowNull: true, // Adjust this based on your requirements
+    type: DataTypes.STRING(30),
+    allowNull: true,
   },
   address: {
     type: DataTypes.STRING,

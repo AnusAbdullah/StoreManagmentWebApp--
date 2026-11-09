@@ -1,0 +1,17 @@
+# Environment variables
+.env
+.env.*
+
+# Dependencies
+node_modules/
+
+# Production build
+build/
+dist/
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

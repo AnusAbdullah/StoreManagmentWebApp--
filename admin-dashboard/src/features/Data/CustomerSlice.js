@@ -7,8 +7,9 @@ const initialState = {
   cnic: "",
   address: "",
   phone: "",
-  header: ["Id", "Customer Name", "Cnic", "Address", "Phone"],
+  header: ["Id", "Customer Name", "Phone", "Address", "Cnic"],
   data: [],
+  rawCustomers: [],
 };
 
 export const createCustomerRecord = createAsyncThunk(
@@ -38,56 +39,47 @@ export const updateCustomerRecord = createAsyncThunk(
 export const deleteCustomerRecord = createAsyncThunk(
   "customer/deleteCustomerRecord",
   async (id) => {
-    console.log(`slice delete ${id}`);
     await api.deleteCustomer(id);
     return id;
   }
 );
 
+const mapCustomersToRows = (customers) => {
+  return customers.map((c) => [
+    c.id,
+    c.name || "",
+    c.phone ? c.phone.toString() : "",
+    c.address || "",
+    c.cnic || "",
+  ]);
+};
+
 const customerSlice = createSlice({
   name: "customer",
   initialState,
   reducers: {},
-  extraReducers: {
-    [createCustomerRecord.fulfilled]: (state, { payload }) => {
-      var data = payload.map((item) => [
-        item.id,
-        item.name,
-        item.phone.toString(),
-        item.address,
-        item.cnic,
-      ]);
-      console.log(data + "customer");
-      state.data = data;
-    },
-    [getAllCustomerRecord.fulfilled]: (state, { payload }) => {
-      var data = payload.map((item) => [
-        item.id,
-        item.name,
-        item.phone.toString(),
-        item.address,
-        item.cnic,
-      ]);
-      console.log(data + "customer");
-      state.data = data;
-    },
-    [updateCustomerRecord]: (state, { payload }) => {
-      var data = payload.map((item) => [
-        item.id,
-        item.name,
-        item.phone.toString(),
-        item.address,
-        item.cnic,
-      ]);
-      state.data = state.data.map((item) =>
-        item.id === data.id ? data : item
-      );
-      console.log(`data changed ${state.data}`);
-    },
-    [deleteCustomerRecord]: (state, { payload }) => {
-      state.data = state.data.filter((item) => item.id !== payload);
-      console.log(`data changed ${state.data}`);
-    },
+  extraReducers: (builder) => {
+    builder
+      .addCase(createCustomerRecord.fulfilled, (state, { payload }) => {
+        state.rawCustomers = Array.isArray(payload) ? payload : [];
+        state.data = mapCustomersToRows(state.rawCustomers);
+      })
+      .addCase(getAllCustomerRecord.fulfilled, (state, { payload }) => {
+        state.rawCustomers = Array.isArray(payload) ? payload : [];
+        state.data = mapCustomersToRows(state.rawCustomers);
+      })
+      .addCase(updateCustomerRecord.fulfilled, (state, { payload }) => {
+        if (payload && payload.id) {
+          state.rawCustomers = state.rawCustomers.map((c) =>
+            c.id === payload.id ? payload : c
+          );
+          state.data = mapCustomersToRows(state.rawCustomers);
+        }
+      })
+      .addCase(deleteCustomerRecord.fulfilled, (state, { payload }) => {
+        state.rawCustomers = state.rawCustomers.filter((c) => c.id !== payload);
+        state.data = mapCustomersToRows(state.rawCustomers);
+      });
   },
 });
 

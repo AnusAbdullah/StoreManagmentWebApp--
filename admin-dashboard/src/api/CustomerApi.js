@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const url = "http://localhost:4001";
+const url = process.env.REACT_APP_API_URL || "http://localhost:4001";
 
 export const createCustomer = (customer) => {
   console.log("Called" + customer.name);

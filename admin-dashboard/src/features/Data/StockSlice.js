@@ -4,12 +4,29 @@ import * as api from "../../api/ItemApi.js"; // Updated to use ItemApi.js
 const initialState = {
   id: "",
   name: "",
+  brand: "",
+  pattern: "",
   size: "",
   category: "",
-  price: "",
-  quantity: "",
-  header: ["Id", "Item Name", "Size", "Category", "Price", "Quantity"],
+  origin: "",
+  dot: "",
+  costPrice: 0,
+  price: 0,
+  quantity: 0,
+  header: [
+    "Id",
+    "Brand",
+    "Model / Pattern",
+    "Size",
+    "Category",
+    "Origin",
+    "DOT",
+    "Cost (PKR)",
+    "Sale (PKR)",
+    "Stock Qty",
+  ],
   data: [],
+  rawItems: [],
 };
 
 export const createItemRecord = createAsyncThunk(
@@ -39,59 +56,52 @@ export const updateItemRecord = createAsyncThunk(
 export const deleteItemRecord = createAsyncThunk(
   "stock/deleteItemRecord",
   async (id) => {
-    console.log(`slice delete ${id}`);
     await api.deleteItem(id);
     return id;
   }
 );
 
+const mapItemsToRows = (items) => {
+  return items.map((item) => [
+    item.id,
+    item.brand || item.name || "",
+    item.pattern || item.name || "",
+    item.size || "",
+    item.category || item.catagory || "Passenger Car",
+    item.origin || "-",
+    item.dot || "-",
+    Number(item.costPrice || 0),
+    Number(item.price || 0),
+    Number(item.quantity || 0),
+  ]);
+};
+
 const stockSlice = createSlice({
   name: "stock",
   initialState,
   reducers: {},
-  extraReducers: {
-    [createItemRecord.fulfilled]: (state, { payload }) => {
-      var data = payload.map((item) => [
-        item.id,
-        item.name,
-        item.size,
-        item.catagory, // Assuming the backend returns "catagory" instead of "category"
-        item.price != null ? item.price.toString() : "",
-        item.quantity != null ? item.quantity.toString() : "",
-      ]);
-      console.log(data + "stock");
-      state.data = data;
-    },
-    [getAllItemRecord.fulfilled]: (state, { payload }) => {
-      var data = payload.map((item) => [
-        item.id,
-        item.name,
-        item.size,
-        item.catagory, // Assuming the backend returns "catagory" instead of "category"
-        item.price != null ? item.price.toString() : "",
-        item.quantity != null ? item.quantity.toString() : "",
-      ]);
-      console.log(data + "stock");
-      state.data = data;
-    },
-    [updateItemRecord]: (state, { payload }) => {
-      var data = payload.map((item) => [
-        item.id,
-        item.name,
-        item.size,
-        item.catagory, // Assuming the backend returns "catagory" instead of "category"
-        item.price != null ? item.price.toString() : "",
-        item.quantity != null ? item.quantity.toString() : "",
-      ]);
-      state.data = state.data.map((item) =>
-        item.id === data.id ? data : item
-      );
-      console.log(`data changed ${state.data}`);
-    },
-    [deleteItemRecord]: (state, { payload }) => {
-      state.data = state.data.filter((item) => item.id !== payload);
-      console.log(`data changed ${state.data}`);
-    },
+  extraReducers: (builder) => {
+    builder
+      .addCase(createItemRecord.fulfilled, (state, { payload }) => {
+        state.rawItems = Array.isArray(payload) ? payload : [];
+        state.data = mapItemsToRows(state.rawItems);
+      })
+      .addCase(getAllItemRecord.fulfilled, (state, { payload }) => {
+        state.rawItems = Array.isArray(payload) ? payload : [];
+        state.data = mapItemsToRows(state.rawItems);
+      })
+      .addCase(updateItemRecord.fulfilled, (state, { payload }) => {
+        if (payload && payload.id) {
+          state.rawItems = state.rawItems.map((item) =>
+            item.id === payload.id ? payload : item
+          );
+          state.data = mapItemsToRows(state.rawItems);
+        }
+      })
+      .addCase(deleteItemRecord.fulfilled, (state, { payload }) => {
+        state.rawItems = state.rawItems.filter((item) => item.id !== payload);
+        state.data = mapItemsToRows(state.rawItems);
+      });
   },
 });
 

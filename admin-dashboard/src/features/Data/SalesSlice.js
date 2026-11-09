@@ -1,39 +1,52 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import * as api from "../../api/SalesApi.js";
 
-/* 
-      cname,
-      data,
-      totalBill,
-      receivedAmount,
-      remainingAmount,
-      status,
-*/
-
 const initialState = {
   name: "",
+  contact: "",
+  vehicleNo: "",
+  vehicleModel: "",
   data: [],
   totalBill: 0,
   recievedAmount: 0,
   remainingAmount: 0,
-  status: "",
+  status: "cash",
+  salesHistory: [],
+  loading: false,
 };
 
 export const createSales = createAsyncThunk(
   "Sales/createSales",
-  async (_, thunkAPI) => {
+  async (customPayload, thunkAPI) => {
     const state = thunkAPI.getState().sale;
-    var sale = {
-      cname: state.name,
-      // data : JSON.parse(JSON.stringify([...state.data])), //deep copy of the array
+    const salePayload = customPayload || {
+      cname: state.name || "Walk-in Customer",
+      vehicleNo: state.vehicleNo || "",
+      vehicleModel: state.vehicleModel || "",
       data: state.data,
-      totalBill: state.totalBill,
-      receivedAmount: state.recievedAmount,
-      remainingAmount: state.remainingAmount,
-      status: state.status,
+      totalBill: Number(state.totalBill || 0),
+      receivedAmount: Number(state.recievedAmount || 0),
+      remainingAmount: Number(state.remainingAmount || 0),
+      status: state.status || "cash",
     };
-    const { data } = await api.createSales(sale);
+    const { data } = await api.createSales(salePayload);
     return data;
+  }
+);
+
+export const getAllSalesRecords = createAsyncThunk(
+  "Sales/getAllSalesRecords",
+  async (_, thunkAPI) => {
+    const { data } = await api.getAllSales();
+    return data;
+  }
+);
+
+export const deleteSalesRecord = createAsyncThunk(
+  "Sales/deleteSalesRecord",
+  async (id, thunkAPI) => {
+    await api.deleteSalesRecord(id);
+    return id;
   }
 );
 
@@ -42,40 +55,97 @@ const saleSlice = createSlice({
   initialState,
   reducers: {
     addSales: (state, { payload }) => {
-      console.log(`payload is = ${payload[0][0]}`);
-      state.data.push(payload[0]);
-      state.totalBill += payload[0][2] * payload[0][3];
+      const itemRow = payload[0];
+      state.data.push(itemRow);
+      const price = Number(Array.isArray(itemRow) ? itemRow[2] : itemRow.price || 0);
+      const qty = Number(Array.isArray(itemRow) ? itemRow[3] : itemRow.quantity || 0);
+      state.totalBill += price * qty;
     },
     editSales: (state, { payload }) => {
-      console.log(`edit = ${payload[0]}`);
-      state.data = state.data.map((row) =>
-        row[0] === payload[0] ? payload : row
-      );
+      const isArr = Array.isArray(payload);
+      const payloadId = isArr ? payload[4] : (payload.itemId || payload.id);
+      const payloadName = isArr ? payload[0] : (payload.itemName || payload.name);
+
+      state.data = state.data.map((row) => {
+        const rowIsArr = Array.isArray(row);
+        const rowId = rowIsArr ? row[4] : (row.itemId || row.id);
+        const rowName = rowIsArr ? row[0] : (row.itemName || row.name);
+
+        if (rowId && payloadId && rowId === payloadId) return payload;
+        return rowName === payloadName ? payload : row;
+      });
+
       state.totalBill = 0;
-      state.data.map((row) => (state.totalBill += row[2] * row[3]));
+      state.data.forEach((row) => {
+        const p = Number(Array.isArray(row) ? row[2] : row.price || 0);
+        const q = Number(Array.isArray(row) ? row[3] : row.quantity || 0);
+        state.totalBill += p * q;
+      });
     },
     deleteSales: (state, { payload }) => {
-      console.log(`delete = ${payload}`);
-      state.data = state.data.filter((row) => row[0] !== payload[0]);
-      state.totalBill -= payload[2] * payload[3];
+      const isArr = Array.isArray(payload);
+      const payloadId = isArr ? payload[4] : (payload.itemId || payload.id);
+      const payloadName = isArr ? payload[0] : (payload.itemName || payload.name);
+
+      state.data = state.data.filter((row) => {
+        const rowIsArr = Array.isArray(row);
+        const rowId = rowIsArr ? row[4] : (row.itemId || row.id);
+        const rowName = rowIsArr ? row[0] : (row.itemName || row.name);
+
+        if (rowId && payloadId && rowId === payloadId) return false;
+        return rowName !== payloadName;
+      });
+
+      state.totalBill = 0;
+      state.data.forEach((row) => {
+        const p = Number(Array.isArray(row) ? row[2] : row.price || 0);
+        const q = Number(Array.isArray(row) ? row[3] : row.quantity || 0);
+        state.totalBill += p * q;
+      });
     },
     checkOut: (state, { payload }) => {
       state.name = payload.name;
-      state.recievedAmount = payload.recamount;
-      state.remainingAmount = payload.remainingAmount;
-      state.status = payload.status;
-      console.log(
-        `${payload.remainingAmount},${payload.recamount},${state.name},${state.recievedAmount},${state.remainingAmount},${state.status}`
-      );
+      state.contact = payload.contact || "";
+      state.vehicleNo = payload.vehicleNo || "";
+      state.vehicleModel = payload.vehicleModel || "";
+      state.recievedAmount = Number(payload.recamount || 0);
+      state.remainingAmount = Number(payload.remainingAmount || 0);
+      state.status = payload.status || "cash";
+    },
+    resetCart: (state) => {
+      state.data = [];
+      state.totalBill = 0;
+      state.recievedAmount = 0;
+      state.remainingAmount = 0;
+      state.name = "";
+      state.contact = "";
+      state.vehicleNo = "";
+      state.vehicleModel = "";
+      state.status = "cash";
     },
   },
-  extraReducers: {
-    [createSales.fulfilled]: (state, { payload }) => {
-      console.log("payload is ", payload, "and the state is ", state);
-    },
+  extraReducers: (builder) => {
+    builder
+      .addCase(createSales.fulfilled, (state, { payload }) => {
+        state.salesHistory = [payload, ...state.salesHistory];
+        state.data = [];
+        state.totalBill = 0;
+        state.recievedAmount = 0;
+        state.remainingAmount = 0;
+        state.name = "";
+        state.vehicleNo = "";
+        state.vehicleModel = "";
+        state.status = "cash";
+      })
+      .addCase(getAllSalesRecords.fulfilled, (state, { payload }) => {
+        state.salesHistory = Array.isArray(payload) ? payload : [];
+      })
+      .addCase(deleteSalesRecord.fulfilled, (state, { payload }) => {
+        state.salesHistory = state.salesHistory.filter((s) => s.id !== payload);
+      });
   },
 });
 
-export const { addSales, editSales, deleteSales, checkOut } = saleSlice.actions;
+export const { addSales, editSales, deleteSales, checkOut, resetCart } = saleSlice.actions;
 
 export default saleSlice.reducer;

@@ -3,13 +3,29 @@ import { Sequelize, DataTypes } from "sequelize";
 import sequelize from "../database/db.js";
 
 const Sale = sequelize.define("Sale", {
+  customerId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
   cname: {
     type: DataTypes.STRING,
-    allowNull: true, // Adjust this based on your requirements
+    allowNull: true,
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  vehicleNo: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  vehicleModel: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   data: {
-    type: DataTypes.JSON, // JSON data type can store arrays of strings
-    allowNull: true, // Adjust this based on your requirements
+    type: DataTypes.JSON, // JSON data type can store arrays of items sold
+    allowNull: true,
   },
   totalBill: {
     type: DataTypes.FLOAT,
@@ -23,9 +39,26 @@ const Sale = sequelize.define("Sale", {
     type: DataTypes.FLOAT,
     allowNull: false,
   },
+  profit: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    defaultValue: 0,
+  },
   status: {
     type: DataTypes.STRING,
-    allowNull: true, // Adjust this based on your requirements
+    allowNull: true,
+  },
+  paymentMethod: {
+    type: DataTypes.STRING,
+    defaultValue: "cash", // "cash" or "bank"
+  },
+  bankAccountId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  bankName: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   createdAt: {
     type: DataTypes.DATE,

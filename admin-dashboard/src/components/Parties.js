@@ -1,99 +1,35 @@
-// import * as React from "react";
-// import { useState, useEffect } from "react";
-// import Card from "@mui/material/Card";
-// import Button from "@mui/material/Button";
-// import CardContent from "@mui/material/CardContent";
-// import Divider from "@mui/material/Divider";
-// import Typography from "@mui/material/Typography";
-// import TextField from "@mui/material/TextField";
-// import TableData from "./TableData";
-
-// export default function Parties() {
-//   // React.useEffect(() => {
-//   //   setTableData({
-//   //     header: ["Customer Name", "Cnic", "Address", "Phone"],
-//   //     data: [["mashood", "33202123", "Jhang", "03137047282"]],
-//   //   });
-//   // }, []);
-
-//   const handleSubmit = (e) => {
-//     e.preventDefault();
-//   };
-
-//   return (
-//     <Card sx={{ minWidth: 275, marginTop: 4 }}>
-//       <CardContent>
-//         <Typography variant="h6">Add New Party</Typography>
-//         <form onSubmit={handleSubmit}>
-//           <TextField
-//             sx={{ marginRight: 5, marginTop: 2 }}
-//             id="outlined-basic"
-//             label="Name"
-//             variant="outlined"
-//             size="small"
-//             name="name"
-//           />
-//           <TextField
-//             sx={{ marginRight: 5, marginTop: 2 }}
-//             id="outlined-basic"
-//             label="Phone"
-//             variant="outlined"
-//             size="small"
-//             name="phone"
-//           />
-//           <TextField
-//             sx={{ marginRight: 5, marginTop: 2 }}
-//             id="outlined-basic"
-//             label="Address"
-//             variant="outlined"
-//             size="small"
-//             name="address"
-//           />
-//           <TextField
-//             sx={{ marginRight: 5, marginTop: 2 }}
-//             id="outlined-basic"
-//             label="Cnic"
-//             variant="outlined"
-//             size="small"
-//             name="cnic"
-//           />
-//           <Button
-//             type="submit"
-//             variant="contained"
-//             sx={{ marginRight: 5, marginTop: 2 }}
-//           >
-//             Add
-//           </Button>
-//         </form>
-//       </CardContent>
-//       <Divider sx={{ my: 1 }} />
-//       <CardContent sx={{ marginTop: 2 }}>
-//         <TableData />
-//       </CardContent>
-//     </Card>
-//   );
-// }
-
 import * as React from "react";
 import { useState, useEffect } from "react";
-import Card from "@mui/material/Card";
-import Button from "@mui/material/Button";
-import CardContent from "@mui/material/CardContent";
-import Divider from "@mui/material/Divider";
-import Typography from "@mui/material/Typography";
-import TextField from "@mui/material/TextField";
-import PartyTable from "./PartyTable.js";
+import {
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  Box,
+  Stack,
+  InputAdornment,
+  Chip,
+} from "@mui/material";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
+import PartyTable from "./PartyTable";
 import { useDispatch, useSelector } from "react-redux";
 import {
   createPartyRecord,
   getAllPartyRecord,
   updatePartyRecord,
   deletePartyRecord,
-} from "../features/Data/PartiesSlice.js";
+} from "../features/Data/PartiesSlice";
 
 export default function PartyForm() {
   const dispatch = useDispatch();
-  const { header, data } = useSelector((state) => state.party);
+  const { header = [], data = [] } = useSelector((state) => state.party);
   const [searchValue, setSearchValue] = useState("");
   const [party, setParty] = useState({
     name: "",
@@ -102,19 +38,22 @@ export default function PartyForm() {
     cnic: "",
   });
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    dispatch(getAllPartyRecord());
+  }, [dispatch]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!party.action) {
-      dispatch(createPartyRecord(party));
+      await dispatch(createPartyRecord(party));
+      dispatch(getAllPartyRecord());
       Clear();
     } else if (party.action === "edit") {
-      dispatch(updatePartyRecord(party));
-      dispatch(getAllPartyRecord());
+      await dispatch(updatePartyRecord(party));
       dispatch(getAllPartyRecord());
       Clear();
-    } else {
-      dispatch(deletePartyRecord(party.id));
-      dispatch(getAllPartyRecord());
+    } else if (party.action === "delete") {
+      await dispatch(deletePartyRecord(party.id));
       dispatch(getAllPartyRecord());
       Clear();
     }
@@ -129,129 +68,225 @@ export default function PartyForm() {
     }
   };
 
-  const SearchParty = () => {
+  const filteredData = React.useMemo(() => {
+    if (!searchValue.trim()) return data;
+    const q = searchValue.toLowerCase();
     return data.filter((item) => {
-      return item[1].toLowerCase().includes(searchValue.toLowerCase());
+      const name = String(item[1] || "").toLowerCase();
+      const phone = String(item[2] || "").toLowerCase();
+      const address = String(item[3] || "").toLowerCase();
+      const cnic = String(item[4] || "").toLowerCase();
+      return name.includes(q) || phone.includes(q) || address.includes(q) || cnic.includes(q);
     });
-  };
+  }, [data, searchValue]);
 
   const Clear = () => {
     setParty({ name: "", phone: "", address: "", cnic: "" });
     setSearchValue("");
   };
 
+  const isEditing = party.action === "edit";
+  const isDeleting = party.action === "delete";
+
   return (
-    <Card sx={{ minWidth: 275, marginTop: 4 }}>
-      <CardContent>
-        <Typography variant="h6">Add New Party</Typography>
-        <form onSubmit={handleSubmit}>
-          <TextField
-            sx={{ marginRight: 5, marginTop: 2 }}
-            id="outlined-basic"
-            label="Name"
-            variant="outlined"
-            size="small"
-            name="name"
-            value={party.name}
-            onChange={handleChange}
-          />
-          <TextField
-            sx={{ marginRight: 5, marginTop: 2 }}
-            id="outlined-basic"
-            label="Phone"
-            variant="outlined"
-            size="small"
-            name="phone"
-            type="number"
-            value={party.phone}
-            onChange={handleChange}
-          />
-          <TextField
-            sx={{ marginRight: 5, marginTop: 2 }}
-            id="outlined-basic"
-            label="Address"
-            variant="outlined"
-            size="small"
-            name="address"
-            value={party.address}
-            onChange={handleChange}
-          />
-          <TextField
-            sx={{ marginRight: 5, marginTop: 2 }}
-            id="outlined-basic"
-            label="Cnic"
-            variant="outlined"
-            size="small"
-            name="cnic"
-            value={party.cnic}
-            onChange={handleChange}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            sx={{ marginRight: 5, marginTop: 2 }}
-          >
-            Add
-          </Button>
-          {party.action === "edit" && (
-            <>
-              <Button
-                type="submit"
-                variant="contained"
-                sx={{ marginRight: 5, marginTop: 2 }}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="contained"
-                sx={{ marginRight: 5, marginTop: 2 }}
-                onClick={() => {
-                  Clear();
+    <Card
+      elevation={0}
+      sx={{
+        p: { xs: 2, md: 3 },
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "#ffffff",
+      }}
+    >
+      <CardContent sx={{ p: 0 }}>
+        {/* Header */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Box>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 2.5,
+                  bgcolor: "rgba(245, 158, 11, 0.1)",
+                  color: "#f59e0b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                Clear
-              </Button>
-            </>
-          )}
-          {party.action === "delete" && (
-            <>
-              <Button
-                type="submit"
-                variant="contained"
-                sx={{ marginRight: 5, marginTop: 2 }}
-              >
-                Delete
-              </Button>
-              <Button
-                variant="contained"
-                sx={{ marginRight: 5, marginTop: 2 }}
-                onClick={() => {
-                  Clear();
-                }}
-              >
-                Clear
-              </Button>
-            </>
-          )}
-        </form>
-        <TextField
-          sx={{ marginRight: 5, marginTop: 2 }}
-          id="outlined-basic"
-          label="Search"
-          variant="outlined"
-          size="small"
-          name="search"
-          value={searchValue}
-          onChange={handleChange}
-        />
-        <Button variant="contained" sx={{ marginRight: 5, marginTop: 2 }}>
-          Search
-        </Button>
-      </CardContent>
-      <Divider sx={{ my: 1 }} />
-      <CardContent sx={{ marginTop: 2 }}>
+                <PeopleAltRoundedIcon />
+              </Box>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Trading Parties
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Manage commercial partners, institutional buyers, and wholesale parties
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+          <Chip label={`${data.length} Parties`} color="warning" variant="outlined" size="small" />
+        </Stack>
+
+        {/* Form Container */}
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            p: 3,
+            bgcolor: "#f8fafc",
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "divider",
+            mb: 3,
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: "#334155" }}>
+            {isEditing ? "Edit Party Record" : isDeleting ? "Delete Party Record" : "Register New Party"}
+          </Typography>
+
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                required
+                id="name"
+                label="Party / Business Name"
+                variant="outlined"
+                size="small"
+                name="name"
+                value={party.name}
+                onChange={handleChange}
+                placeholder="e.g. Apex Traders"
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                required
+                id="phone"
+                label="Phone Number"
+                variant="outlined"
+                size="small"
+                name="phone"
+                type="number"
+                value={party.phone}
+                onChange={handleChange}
+                placeholder="03001234567"
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                required
+                id="cnic"
+                label="CNIC / NTN"
+                variant="outlined"
+                size="small"
+                name="cnic"
+                value={party.cnic}
+                onChange={handleChange}
+                placeholder="33202-1234567-1"
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                required
+                id="address"
+                label="Business Address"
+                variant="outlined"
+                size="small"
+                name="address"
+                value={party.address}
+                onChange={handleChange}
+                placeholder="Market, City"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Stack direction="row" spacing={1.5} justifyContent="flex-end" sx={{ mt: 1 }}>
+                {isEditing ? (
+                  <>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      color="primary"
+                      startIcon={<SaveRoundedIcon />}
+                    >
+                      Save Changes
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="inherit"
+                      onClick={Clear}
+                      startIcon={<ClearRoundedIcon />}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : isDeleting ? (
+                  <>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      color="error"
+                      startIcon={<DeleteRoundedIcon />}
+                    >
+                      Confirm Delete
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="inherit"
+                      onClick={Clear}
+                      startIcon={<ClearRoundedIcon />}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddRoundedIcon />}
+                  >
+                    Register Party
+                  </Button>
+                )}
+              </Stack>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Search Bar & Table Header */}
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            Trading Parties Directory
+          </Typography>
+          <TextField
+            size="small"
+            name="search"
+            value={searchValue}
+            onChange={handleChange}
+            placeholder="Search parties by name, phone, CNIC, or address..."
+            sx={{ minWidth: { xs: "100%", sm: 340 } }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Stack>
+
+        {/* Party Table */}
         <PartyTable
-          data={searchValue ? SearchParty() : data}
+          data={filteredData}
           header={header}
           setParty={setParty}
         />
